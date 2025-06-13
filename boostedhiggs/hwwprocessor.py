@@ -62,6 +62,14 @@ def build_p4(cand):
         behavior=candidate.behavior,
     )
 
+def getNumberBTaggedJets(ak4jets, higgsJet, VJet,year):
+    dr_ak8Jets_HiggsCandidateJet_Uncertainty = ak4jets.delta_r(higgsJet)
+    dr_ak8Jets_VCandidateJet_Uncertainty = ak4jets.delta_r(VJet)
+    ak4_outsideBothJets_Uncertainty = ak4jets[ (dr_ak8Jets_HiggsCandidateJet_Uncertainty > 0.8) & (dr_ak8Jets_VCandidateJet_Uncertainty  > 0.8) ]
+    #NumOtherJetsOutsideBothJets_Uncertainty_down = ak.num(ak4_outsideBothJets_Uncertainty_down)
+    NumOtherJetsOutsideBothJets_Uncertainty = ak.sum( ak4_outsideBothJets_Uncertainty.btagDeepFlavB > btagWPs["deepJet"][year]["M"],axis=1, )
+    return NumOtherJetsOutsideBothJets_Uncertainty
+
 
 class HwwProcessor(processor.ProcessorABC):
     def __init__(
@@ -406,6 +414,44 @@ class HwwProcessor(processor.ProcessorABC):
             axis=1,
         )
 
+        ################# Copy from vhprocessorAK4.py #################
+        jec_shifted_jetvars_filtered = {
+            var: {shift: values for shift, values in shifts.items()}
+            for var, shifts in jec_shifted_jetvars.items()
+        }
+
+        uncertainty_sources = [
+            "JES_down", "JES_up",
+            "JER_down", "JER_up",
+            "JES_FlavorQCD_up", "JES_FlavorQCD_down",
+            "JES_RelativeBal_up", "JES_RelativeBal_down",
+            "JES_HF_up", "JES_HF_down",
+            "JES_BBEC1_up", "JES_BBEC1_down",
+            "JES_EC2_up", "JES_EC2_down",
+            "JES_Absolute_up", "JES_Absolute_down",
+            "JES_Total_up", "JES_Total_down"
+        ]
+
+        year_specific_sources = [
+            "JES_BBEC1", "JES_RelativeSample", "JES_EC2", "JES_HF", "JES_Absolute"
+        ]
+
+        for source in year_specific_sources:
+            uncertainty_sources.extend([f"{source}_{self._year}_up", f"{source}_{self._year}_down"])
+
+        n_bjets_JES_JER_variables = {}
+        for source in uncertainty_sources:
+            shifted_pt = jec_shifted_jetvars_filtered['pt'][source]
+
+            jet_selector = shifted_pt > 30
+            good_jets = jets[jet_selector]
+
+            ### Define second fatjet
+            n_bjets_JES_JER_variables[f"n_bjets_{source}"] = getNumberBTaggedJets(good_jets, candidatefj, second_fj, self._year)
+
+
+        ################# Copy from vhprocessorAK4.py #################
+
         # delta R between AK8 jet and lepton
         lep_fj_dr = candidatefj.delta_r(candidatelep_p4)
 
@@ -518,6 +564,9 @@ class HwwProcessor(processor.ProcessorABC):
             "nB": nBjets,
             "nC": nCjets,
         }
+
+        ### Add AK4 b-jet uncertainties variables
+        variables.update(n_bjets_JES_JER_variables)
 
         # store the genweight as a column
         for ch in self._channels:

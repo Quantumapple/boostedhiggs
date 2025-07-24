@@ -314,7 +314,7 @@ class vhProcessor(processor.ProcessorABC):
 
         allScores = VScore(good_fatjets)
         VH_fj = ak.firsts(good_fatjets[allScores == ak.max(allScores[mask_candidatefj], axis=1)])
-        VH_fj["msdcorr"] = ak.firsts(corrected_msoftdrop(VH_fj))
+        VH_fj["msdcorr"] = corrected_msoftdrop(VH_fj)
 
         # AK4 JETS
         jets, jec_shifted_jetvars = get_jec_jets(events, events.Jet, self._year, not self.isMC, self.jecs, fatjets=False)

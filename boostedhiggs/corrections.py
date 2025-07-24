@@ -74,12 +74,23 @@ def corrected_msoftdrop(fatjets):
     # msoftdrop = fatjets.msoftdrop
     msdfjcorr = msdraw / (1 - fatjets.rawFactor)
 
-    corr = msdcorr["msdfjcorr"].evaluate(
-        np.array(ak.flatten(msdfjcorr / fatjets.pt)),
-        np.array(ak.flatten(np.log(fatjets.pt))),
-        np.array(ak.flatten(fatjets.eta)),
-    )
-    corr = ak.unflatten(corr, ak.num(fatjets))
+    is_nested = fatjets.ndim > 1
+
+    if is_nested:
+        corr = msdcorr["msdfjcorr"].evaluate(
+            np.array(ak.flatten(msdfjcorr / fatjets.pt)),
+            np.array(ak.flatten(np.log(fatjets.pt))),
+            np.array(ak.flatten(fatjets.eta)),
+        )
+        corr = ak.unflatten(corr, ak.num(fatjets))
+
+    else:
+        corr = msdcorr["msdfjcorr"].evaluate(
+            ak.to_numpy(msdfjcorr / fatjets.pt),
+            ak.to_numpy(np.log(fatjets.pt)),
+            ak.to_numpy(fatjets.eta),
+        )
+
     corrected_mass = msdfjcorr * corr
 
     return corrected_mass

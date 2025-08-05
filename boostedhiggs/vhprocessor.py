@@ -689,8 +689,9 @@ class vhProcessor(processor.ProcessorABC):
             self.add_selection(
                 name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
             )
-            self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_mu"] == 0), channel="mu")
-            self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_ele"] == 0), channel="ele")
+            ### Drop Tau selection for vhprocessor
+            # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_mu"] == 0), channel="mu")
+            # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_ele"] == 0), channel="ele")
             self.add_selection(name="AtLeastOneFatJet", sel=(variables["NumFatjets"] >= 1))
 
             fj_pt_sel = objects["candidatefj"].pt > 250

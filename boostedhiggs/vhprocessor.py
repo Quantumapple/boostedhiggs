@@ -350,8 +350,8 @@ class vhProcessor(processor.ProcessorABC):
         loose_taus = events.Tau[loose_taus]
 
         # b-jets (only for jets with abs(eta)<2.5)
-        bjet_selector = (jets.delta_r(candidatefj) > 0.8) &  (abs(jets.eta) < 2.5)
-        # bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (jets.delta_r(VH_fj) > 0.8) & (abs(jets.eta) < 2.5)
+        # bjet_selector = (jets.delta_r(candidatefj) > 0.8) &  (abs(jets.eta) < 2.5)
+        bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (jets.delta_r(VH_fj) > 0.8) & (abs(jets.eta) < 2.5)
 
         objects = {
             "candidatefj": candidatefj,

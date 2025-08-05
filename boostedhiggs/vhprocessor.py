@@ -704,7 +704,7 @@ class vhProcessor(processor.ProcessorABC):
 
             self.add_selection(name="LepInJet", sel=(variables["lep_fj_dr"] < 0.8))
             self.add_selection(name="JetLepOverlap", sel=(variables["lep_fj_dr"] > 0.03))
-            # self.add_selection(name="dPhiJetMET", sel=(np.abs(variables["met_fj_dphi"]) < 1.57))
+            self.add_selection(name="dPhiJetMET", sel=(np.abs(variables["met_fj_dphi"]) < 1.57))
 
             if self._fakevalidation:
                 self.add_selection(name="MET", sel=(objects["met"].pt < 20))

@@ -69,25 +69,6 @@ def build_p4(cand):
         behavior=candidate.behavior,
     )
 
-def find_int_cols_with_nans(df):
-    """
-    Finds columns in a DataFrame that have an integer dtype but contain NaN values.
-
-    Returns:
-        A list of the names of the problematic columns.
-    """
-    problem_cols = []
-    for col in df.columns:
-        # Check if the column is supposed to be an integer type
-        is_int_dtype = np.issubdtype(df[col].dtype, np.integer)
-
-        # Check if the column has any null/NaN values
-        has_nulls = df[col].isnull().any()
-
-        if is_int_dtype and has_nulls:
-            problem_cols.append(col)
-
-    return problem_cols
 
 class vhProcessor(processor.ProcessorABC):
     def __init__(
@@ -158,20 +139,10 @@ class vhProcessor(processor.ProcessorABC):
     def _save_dfs_parquet(self, fname, dfs_dict, ch):
         """Save the given pandas DataFrame dictionary as a Parquet file to the output directory."""
 
-        # --- DIAGNOSIS AND FIX ---
-        # 1. Dig for problematic columns before attempting to write
-        problem_cols = find_int_cols_with_nans(dfs_dict)
-        print(problem_cols)
-        # --- END DIAGNOSIS AND FIX ---
-
         if self._output_location is not None:
-            try:
-                table = pa.Table.from_pandas(dfs_dict)
-
-                if len(table) != 0:  # skip dataframes with empty entries
-                    pq.write_table(table, self._output_location + ch + "/parquet/" + fname + ".parquet")
-            except Exception as e:
-                print(f"Failed to write parquet file for {fname}. Error: {e}")
+            table = pa.Table.from_pandas(dfs_dict)
+            if len(table) != 0:  # skip dataframes with empty entries
+                pq.write_table(table, self._output_location + ch + "/parquet/" + fname + ".parquet")
 
     def _ak_to_pandas(self, output_collection: ak.Array) -> pd.DataFrame:
         """Converts an Awkward Array collection to a flat pandas DataFrame for to write the output."""
@@ -379,7 +350,8 @@ class vhProcessor(processor.ProcessorABC):
         loose_taus = events.Tau[loose_taus]
 
         # b-jets (only for jets with abs(eta)<2.5)
-        bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (jets.delta_r(VH_fj) > 0.8) & (abs(jets.eta) < 2.5)
+        bjet_selector = (jets.delta_r(candidatefj) > 0.8) &  (abs(jets.eta) < 2.5)
+        # bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (jets.delta_r(VH_fj) > 0.8) & (abs(jets.eta) < 2.5)
 
         objects = {
             "candidatefj": candidatefj,
@@ -904,7 +876,7 @@ class vhProcessor(processor.ProcessorABC):
                     variables[f"weight_{ch}_{systematic}"] = self.weights[ch].weight(modifier=systematic)
 
             # store b-tag weight
-            for wp_ in ["M", "T"]:
+            for wp_ in ["T"]:
                 variables = {
                     **variables,
                     **get_btag_weights(

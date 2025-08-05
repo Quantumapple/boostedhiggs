@@ -350,8 +350,8 @@ class vhProcessor(processor.ProcessorABC):
         loose_taus = events.Tau[loose_taus]
 
         # b-jets (only for jets with abs(eta)<2.5)
-        # bjet_selector = (jets.delta_r(candidatefj) > 0.8) &  (abs(jets.eta) < 2.5)
-        bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (jets.delta_r(VH_fj) > 0.8) & (abs(jets.eta) < 2.5)
+        bjet_selector = (jets.delta_r(candidatefj) > 0.8) &  (abs(jets.eta) < 2.5)
+        # bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (jets.delta_r(VH_fj) > 0.8) & (abs(jets.eta) < 2.5)
 
         objects = {
             "candidatefj": candidatefj,
@@ -692,8 +692,8 @@ class vhProcessor(processor.ProcessorABC):
             ### Drop Tau selection for vhprocessor
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_mu"] == 0), channel="mu")
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_ele"] == 0), channel="ele")
-            self.add_selection(name="AtLeastOneFatJet", sel=(variables["NumFatjets"] >= 1))
-            # self.add_selection(name="GreaterTwoFatJets", sel=(variables["NumFatjets"] >= 2))
+            # self.add_selection(name="AtLeastOneFatJet", sel=(variables["NumFatjets"] >= 1))
+            self.add_selection(name="GreaterTwoFatJets", sel=(variables["NumFatjets"] >= 2))
 
             fj_pt_sel = objects["candidatefj"].pt > 250
             if self.isMC:  # make an OR of all the JECs

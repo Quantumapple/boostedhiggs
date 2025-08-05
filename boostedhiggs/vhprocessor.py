@@ -702,7 +702,7 @@ class vhProcessor(processor.ProcessorABC):
                         fj_pt_sel = fj_pt_sel | (objects["candidatefj"][v][var].pt > 250)
             self.add_selection(name="CandidateJetpT", sel=(fj_pt_sel == 1))
 
-            # self.add_selection(name="LepInJet", sel=(variables["lep_fj_dr"] < 0.8))
+            self.add_selection(name="LepInJet", sel=(variables["lep_fj_dr"] < 0.8))
             # self.add_selection(name="JetLepOverlap", sel=(variables["lep_fj_dr"] > 0.03))
             # self.add_selection(name="dPhiJetMET", sel=(np.abs(variables["met_fj_dphi"]) < 1.57))
 

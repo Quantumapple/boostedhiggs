@@ -139,14 +139,10 @@ class vhProcessor(processor.ProcessorABC):
     def _save_dfs_parquet(self, fname, dfs_dict, ch):
         """Save the given pandas DataFrame dictionary as a Parquet file to the output directory."""
 
-        if self._output_location is not None and not dfs_dict.empty:
-            output_path = self._output_location + ch + "/parquet/" + fname + ".parquet"
-            dfs_dict.to_parquet(output_path)
-
-        # if self._output_location is not None:
-        #     table = pa.Table.from_pandas(dfs_dict)
-        #     if len(table) != 0:  # skip dataframes with empty entries
-        #         pq.write_table(table, self._output_location + ch + "/parquet/" + fname + ".parquet")
+        if self._output_location is not None:
+            table = pa.Table.from_pandas(dfs_dict)
+            if len(table) != 0:  # skip dataframes with empty entries
+                pq.write_table(table, self._output_location + ch + "/parquet/" + fname + ".parquet")
 
     def _ak_to_pandas(self, output_collection: ak.Array) -> pd.DataFrame:
         """Converts an Awkward Array collection to a flat pandas DataFrame for to write the output."""
@@ -688,16 +684,37 @@ class vhProcessor(processor.ProcessorABC):
 
         if self._apply_selection:
             self.add_selection(name="METFilters", sel=metfilters)
+
             self.add_selection(
-                name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_loose_electrons"] == 0), channel="mu"
+                name="OneLep", sel=(variables["n_good_muons"] == 1), channel="mu"
             )
             self.add_selection(
-                name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
+                name="OneLep", sel=(variables["n_good_electrons"] == 1), channel="ele"
             )
+
+            #### Original Farouk's selection
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_loose_electrons"] == 0), channel="mu"
+            # )
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
+            # )
+
+            #### Matched with Jieun's lepton selection
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_good_electrons"] == 0), channel="mu"
+            # )
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_good_muons"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
+            # )
+
+            ### Drop Tau selection for vhprocessor
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_mu"] == 0), channel="mu")
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_ele"] == 0), channel="ele")
             self.add_selection(name="AtLeastOneFatJet", sel=(variables["NumFatjets"] >= 1))
+            # self.add_selection(name="GreaterTwoFatJets", sel=(variables["NumFatjets"] >= 2))
 
+            ### FJ pT cut for H candidate jet
             fj_pt_sel = objects["candidatefj"].pt > 250
             if self.isMC:  # make an OR of all the JECs
                 for k, v in self.jecs.items():
@@ -705,6 +722,15 @@ class vhProcessor(processor.ProcessorABC):
                         fj_pt_sel = fj_pt_sel | (objects["candidatefj"][v][var].pt > 250)
             self.add_selection(name="CandidateJetpT", sel=(fj_pt_sel == 1))
 
+            ### FJ pT cut for V candidate jet
+            # fj_pt_sel = objects["VH_fj"].pt > 250
+            # if self.isMC:  # make an OR of all the JECs
+            #     for k, v in self.jecs.items():
+            #         for var in ["up", "down"]:
+            #             fj_pt_sel = fj_pt_sel | (objects["VH_fj"][v][var].pt > 250)
+            # self.add_selection(name="CandidateJetpT_V", sel=(fj_pt_sel == 1))
+
+            ### Overlap condition but not for the dR < 0.03 (could be consider as the same object)
             self.add_selection(name="LepInJet", sel=(variables["lep_fj_dr"] < 0.8))
             self.add_selection(name="JetLepOverlap", sel=(variables["lep_fj_dr"] > 0.03))
 
@@ -714,6 +740,8 @@ class vhProcessor(processor.ProcessorABC):
             #     self.add_selection(name="MET", sel=(objects["met"].pt < 20))
             # else:
             #     self.add_selection(name="MET", sel=(objects["met"].pt > 20))
+
+            # self.add_selection(name="VmassCut", sel=( objects["VH_fj"].mass > 40 ))
 
             # hem-cleaning selection
             if self._year == "2018":

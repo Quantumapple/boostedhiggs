@@ -691,12 +691,21 @@ class vhProcessor(processor.ProcessorABC):
 
         if self._apply_selection:
             self.add_selection(name="METFilters", sel=metfilters)
+
             self.add_selection(
-                name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_loose_electrons"] == 0), channel="mu"
+                name="OneLep", sel=(variables["n_good_muons"] == 1), channel="mu"
             )
             self.add_selection(
-                name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
+                name="OneLep", sel=(variables["n_good_electrons"] == 1), channel="ele"
             )
+
+            #### Original Farouk's lepton event selections
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_loose_electrons"] == 0), channel="mu"
+            # )
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
+            # )
 
             #### Matched with Jieun's lepton selection
             # self.add_selection(

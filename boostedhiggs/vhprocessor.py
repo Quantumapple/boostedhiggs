@@ -352,7 +352,8 @@ class vhProcessor(processor.ProcessorABC):
         # b-jets (only for jets with abs(eta)<2.5)
         safe_dR_jets_to_VH_fj = ak.fill_none(jets.delta_r(VH_fj), 999.0) ### Safety to fill NaN
         # bjet_selector = (jets.delta_r(candidatefj) > 0.8) &  (abs(jets.eta) < 2.5)
-        bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (safe_dR_jets_to_VH_fj) & (abs(jets.eta) < 2.5)
+        bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (safe_dR_jets_to_VH_fj > 0.8) & (abs(jets.eta) < 2.5)
+
 
         objects = {
             "candidatefj": candidatefj,

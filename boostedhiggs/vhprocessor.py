@@ -350,8 +350,9 @@ class vhProcessor(processor.ProcessorABC):
         loose_taus = events.Tau[loose_taus]
 
         # b-jets (only for jets with abs(eta)<2.5)
+        safe_dR_jets_to_VH_fj = ak.fill_none(jets.delta_r(objects["VH_fj"]), 999.0) ### Safety to fill NaN
         # bjet_selector = (jets.delta_r(candidatefj) > 0.8) &  (abs(jets.eta) < 2.5)
-        bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (jets.delta_r(VH_fj) > 0.8) & (abs(jets.eta) < 2.5)
+        bjet_selector = (jets.delta_r(candidatefj) > 0.8) & (safe_dR_jets_to_VH_fj) & (abs(jets.eta) < 2.5)
 
         objects = {
             "candidatefj": candidatefj,
@@ -537,12 +538,18 @@ class vhProcessor(processor.ProcessorABC):
             "SecondFatjet_msd": objects["SecondFatjet"].msdcorr,
             "SecondFatjet_Vscore": VScore(objects["SecondFatjet"]),
             # second fatjet after candidate jet
-            "VH_fj_pt": objects["VH_fj"].pt,
-            "VH_fj_eta": objects["VH_fj"].eta,
-            "VH_fj_phi": objects["VH_fj"].phi,
-            "VH_fj_mass": objects["VH_fj"].msdcorr,
-            "VH_fj_lsf3": objects["VH_fj"].lsf3,
-            "VH_fj_VScore": VScore(objects["VH_fj"]),
+            "VH_fj_pt": ak.fill_none(objects["VH_fj"].pt, -999.0),
+            "VH_fj_eta": ak.fill_none(objects["VH_fj"].eta, -999.0),
+            "VH_fj_phi": ak.fill_none(objects["VH_fj"].phi, -999.0),
+            "VH_fj_mass": ak.fill_none(objects["VH_fj"].msdcorr, -999.0),
+            "VH_fj_lsf3": ak.fill_none(objects["VH_fj"].lsf3, -999.0),
+            "VH_fj_VScore": ak.fill_none(VScore(objects["VH_fj"]), -999.0),
+            # "VH_fj_pt": objects["VH_fj"].pt,
+            # "VH_fj_eta": objects["VH_fj"].eta,
+            # "VH_fj_phi": objects["VH_fj"].phi,
+            # "VH_fj_mass": objects["VH_fj"].msdcorr,
+            # "VH_fj_lsf3": objects["VH_fj"].lsf3,
+            # "VH_fj_VScore": VScore(objects["VH_fj"]),
             # others
             "ht": ht,
             "loose_lep1_miso": ak.firsts(
@@ -689,12 +696,24 @@ class vhProcessor(processor.ProcessorABC):
             self.add_selection(
                 name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
             )
+
+            #### Matched with Jieun's lepton selection
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_good_electrons"] == 0), channel="mu"
+            # )
+            # self.add_selection(
+            #     name="OneLep", sel=(variables["n_good_muons"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
+            # )
+
             ### Drop Tau selection for vhprocessor
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_mu"] == 0), channel="mu")
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_ele"] == 0), channel="ele")
-            # self.add_selection(name="AtLeastOneFatJet", sel=(variables["NumFatjets"] >= 1))
-            self.add_selection(name="GreaterTwoFatJets", sel=(variables["NumFatjets"] >= 2))
 
+            ### Number of fatjet selection
+            self.add_selection(name="AtLeastOneFatJet", sel=(variables["NumFatjets"] >= 1))
+            # self.add_selection(name="GreaterTwoFatJets", sel=(variables["NumFatjets"] >= 2))
+
+            ### FJ pT cut for H candidate jet
             fj_pt_sel = objects["candidatefj"].pt > 250
             if self.isMC:  # make an OR of all the JECs
                 for k, v in self.jecs.items():
@@ -702,14 +721,29 @@ class vhProcessor(processor.ProcessorABC):
                         fj_pt_sel = fj_pt_sel | (objects["candidatefj"][v][var].pt > 250)
             self.add_selection(name="CandidateJetpT", sel=(fj_pt_sel == 1))
 
+            ### FJ pT cut for V candidate jet
+            fj_pt_sel = objects["VH_fj"].pt > 250
+            if self.isMC:  # make an OR of all the JECs
+                for k, v in self.jecs.items():
+                    for var in ["up", "down"]:
+                        fj_pt_sel = fj_pt_sel | (objects["VH_fj"][v][var].pt > 250)
+            self.add_selection(name="CandidateJetpT_V", sel=(fj_pt_sel == 1))
+
+            ### Overlap condition but not for the dR < 0.03 (could be consider as the same object)
             self.add_selection(name="LepInJet", sel=(variables["lep_fj_dr"] < 0.8))
             self.add_selection(name="JetLepOverlap", sel=(variables["lep_fj_dr"] > 0.03))
-            self.add_selection(name="dPhiJetMET", sel=(np.abs(variables["met_fj_dphi"]) < 1.57))
 
-            if self._fakevalidation:
-                self.add_selection(name="MET", sel=(objects["met"].pt < 20))
-            else:
-                self.add_selection(name="MET", sel=(objects["met"].pt > 20))
+
+            #### Drop delta-Phi between H candidate fj and MET / MET cut for the moment
+            # self.add_selection(name="dPhiJetMET", sel=(np.abs(variables["met_fj_dphi"]) < 1.57))
+
+            # if self._fakevalidation:
+            #     self.add_selection(name="MET", sel=(objects["met"].pt < 20))
+            # else:
+            #     self.add_selection(name="MET", sel=(objects["met"].pt > 20))
+
+            # self.add_selection(name="VmassCut", sel=( objects["VH_fj"].mass > 40 ))
+
 
             # hem-cleaning selection
             if self._year == "2018":

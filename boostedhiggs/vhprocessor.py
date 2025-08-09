@@ -507,22 +507,22 @@ class vhProcessor(processor.ProcessorABC):
             "met_pt": objects["met"].pt,
             "met_phi": objects["met"].phi,
             # nleptons
-            "n_loose_taus_mu": n_loose_taus_mu,
-            "n_loose_taus_ele": n_loose_taus_ele,
-            "n_loose_muons1": n_loose_muons1,
-            "n_loose_muons2": n_loose_muons2,
-            "n_tight_muons": n_tight_muons,
-            "n_good_muons": n_good_muons,
-            "n_loose_electrons": n_loose_electrons,
-            "n_tight_electrons": n_tight_electrons,
-            "n_good_electrons": n_good_electrons,
-            "n_loose_taus_mu": n_loose_taus_mu,
+            "n_loose_taus_mu": ak.fill_none(n_loose_taus_mu, -1),
+            "n_loose_taus_ele": ak.fill_none(n_loose_taus_ele, -1),
+            "n_loose_muons1": ak.fill_none(n_loose_muons1, -1),
+            "n_loose_muons2": ak.fill_none(n_loose_muons2, -1),
+            "n_tight_muons": ak.fill_none(n_tight_muons, -1),
+            "n_good_muons": ak.fill_none(n_good_muons, -1),
+            "n_loose_electrons": ak.fill_none(n_loose_electrons, -1),
+            "n_tight_electrons": ak.fill_none(n_tight_electrons, -1),
+            "n_good_electrons": ak.fill_none(n_good_electrons, -1),
+            "n_loose_taus_mu": ak.fill_none(n_loose_taus_mu, -1),
             # njets
             "NumFatjets": NumFatjets,
-            "NumOtherJets": NumOtherJets,
-            "n_bjets_L": n_bjets_L,
-            "n_bjets_M": n_bjets_M,
-            "n_bjets_T": n_bjets_T,
+            "NumOtherJets": ak.fill_none(NumOtherJets, -1),
+            "n_bjets_L": ak.fill_none(n_bjets_L, -1),
+            "n_bjets_M": ak.fill_none(n_bjets_M, -1),
+            "n_bjets_T": ak.fill_none(n_bjets_T, -1),
             # vbf variables
             "deta": deta,
             "mjj": mjj,
@@ -691,21 +691,13 @@ class vhProcessor(processor.ProcessorABC):
 
         if self._apply_selection:
             self.add_selection(name="METFilters", sel=metfilters)
-
-            self.add_selection(
-                name="OneLep", sel=(variables["n_good_muons"] == 1), channel="mu"
-            )
-            self.add_selection(
-                name="OneLep", sel=(variables["n_good_electrons"] == 1), channel="ele"
-            )
-
             #### Original Farouk's lepton event selections
-            # self.add_selection(
-            #     name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_loose_electrons"] == 0), channel="mu"
-            # )
-            # self.add_selection(
-            #     name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
-            # )
+            self.add_selection(
+                name="OneLep", sel=(variables["n_good_muons"] == 1) & (variables["n_loose_electrons"] == 0), channel="mu"
+            )
+            self.add_selection(
+                name="OneLep", sel=(variables["n_loose_muons1"] == 0) & (variables["n_good_electrons"] == 1), channel="ele"
+            )
 
             #### Matched with Jieun's lepton selection
             # self.add_selection(
@@ -732,12 +724,12 @@ class vhProcessor(processor.ProcessorABC):
             self.add_selection(name="CandidateJetpT", sel=(fj_pt_sel == 1))
 
             ### FJ pT cut for V candidate jet
-            # fj_pt_sel = objects["VH_fj"].pt > 250
-            # if self.isMC:  # make an OR of all the JECs
-            #     for k, v in self.jecs.items():
-            #         for var in ["up", "down"]:
-            #             fj_pt_sel = fj_pt_sel | (objects["VH_fj"][v][var].pt > 250)
-            # self.add_selection(name="CandidateJetpT_V", sel=(fj_pt_sel == 1))
+            fj_pt_sel = objects["VH_fj"].pt > 250
+            if self.isMC:  # make an OR of all the JECs
+                for k, v in self.jecs.items():
+                    for var in ["up", "down"]:
+                        fj_pt_sel = fj_pt_sel | (objects["VH_fj"][v][var].pt > 250)
+            self.add_selection(name="CandidateJetpT_V", sel=(fj_pt_sel == 1))
 
             ### Overlap condition but not for the dR < 0.03 (could be consider as the same object)
             self.add_selection(name="LepInJet", sel=(variables["lep_fj_dr"] < 0.8))

@@ -485,28 +485,49 @@ class vhProcessor(processor.ProcessorABC):
             nBjets = (ak.sum(goodgenjets.hadronFlavour == 5, axis=1)).to_numpy()
             nCjets = (ak.sum(goodgenjets.hadronFlavour == 4, axis=1)).to_numpy()
 
+
         derived_vars = {
-            # candidatefj
-            "fj_pt": objects["candidatefj"].pt,
-            "fj_eta": objects["candidatefj"].eta,
-            "fj_phi": objects["candidatefj"].phi,
-            "fj_mass": objects["candidatefj"].msdcorr,
-            "fj_lsf3": objects["candidatefj"].lsf3,
-            "fj_VScore": VScore(objects["candidatefj"]),
-            # candidatelep
-            "lep_pt": objects["candidatelep"].pt,
-            "lep_eta": objects["candidatelep"].eta,
-            "lep_phi": objects["candidatelep"].phi,
-            "lep_mass": objects["candidatelep"].mass,
-            "lep_isolation": lep_reliso,
-            "lep_misolation": lep_miso,
-            "lep_fj_dr": lep_fj_dr,
-            "lep_met_mt": mt_lep_met,
-            # met
-            "met_fj_dphi": met_fj_dphi,
-            "met_pt": objects["met"].pt,
-            "met_phi": objects["met"].phi,
-            # nleptons
+            # --- FLOATING POINT VARIABLES ---
+            "fj_pt": ak.fill_none(objects["candidatefj"].pt, -999.0),
+            "fj_eta": ak.fill_none(objects["candidatefj"].eta, -999.0),
+            "fj_phi": ak.fill_none(objects["candidatefj"].phi, -999.0),
+            "fj_mass": ak.fill_none(objects["candidatefj"].msdcorr, -999.0),
+            "fj_lsf3": ak.fill_none(objects["candidatefj"].lsf3, -999.0),
+            "fj_VScore": ak.fill_none(VScore(objects["candidatefj"]), -999.0),
+            "lep_pt": ak.fill_none(objects["candidatelep"].pt, -999.0),
+            "lep_eta": ak.fill_none(objects["candidatelep"].eta, -999.0),
+            "lep_phi": ak.fill_none(objects["candidatelep"].phi, -999.0),
+            "lep_mass": ak.fill_none(objects["candidatelep"].mass, -999.0),
+            "lep_isolation": ak.fill_none(lep_reliso, -999.0),
+            "lep_misolation": ak.fill_none(lep_miso, -999.0),
+            "lep_fj_dr": ak.fill_none(lep_fj_dr, -999.0),
+            "lep_met_mt": ak.fill_none(mt_lep_met, -999.0),
+            "met_fj_dphi": ak.fill_none(met_fj_dphi, -999.0),
+            "met_pt": ak.fill_none(objects["met"].pt, -999.0),
+            "met_phi": ak.fill_none(objects["met"].phi, -999.0),
+            "deta": ak.fill_none(deta, -999.0),
+            "mjj": ak.fill_none(mjj, -999.0),
+            "ht": ak.fill_none(ht, -999.0),
+            "FirstFatjet_pt": ak.fill_none(objects["FirstFatjet"].pt, -999.0),
+            "FirstFatjet_eta": ak.fill_none(objects["FirstFatjet"].eta, -999.0),
+            "FirstFatjet_phi": ak.fill_none(objects["FirstFatjet"].phi, -999.0),
+            "FirstFatjet_msd": ak.fill_none(objects["FirstFatjet"].msdcorr, -999.0),
+            "FirstFatjet_Vscore": ak.fill_none(VScore(objects["FirstFatjet"]), -999.0),
+            "SecondFatjet_pt": ak.fill_none(objects["SecondFatjet"].pt, -999.0),
+            "SecondFatjet_eta": ak.fill_none(objects["SecondFatjet"].eta, -999.0),
+            "SecondFatjet_phi": ak.fill_none(objects["SecondFatjet"].phi, -999.0),
+            "SecondFatjet_msd": ak.fill_none(objects["SecondFatjet"].msdcorr, -999.0),
+            "SecondFatjet_Vscore": ak.fill_none(VScore(objects["SecondFatjet"]), -999.0),
+            "VH_fj_pt": ak.fill_none(objects["VH_fj"].pt, -999.0),
+            "VH_fj_eta": ak.fill_none(objects["VH_fj"].eta, -999.0),
+            "VH_fj_phi": ak.fill_none(objects["VH_fj"].phi, -999.0),
+            "VH_fj_mass": ak.fill_none(objects["VH_fj"].msdcorr, -999.0),
+            "VH_fj_lsf3": ak.fill_none(objects["VH_fj"].lsf3, -999.0),
+            "VH_fj_VScore": ak.fill_none(VScore(objects["VH_fj"]), -999.0),
+            "loose_lep1_miso": ak.fill_none(ak.firsts(objects["loose_muons1"][ak.argsort(objects["loose_muons1"].pt, ascending=False)]).miniPFRelIso_all, -999.0),
+            "loose_lep1_pt": ak.fill_none(ak.firsts(objects["loose_muons1"][ak.argsort(objects["loose_muons1"].pt, ascending=False)]).pt, -999.0),
+
+            # --- INTEGER COUNT VARIABLES - THIS IS THE CRITICAL FIX ---
             "n_loose_taus_mu": ak.fill_none(n_loose_taus_mu, -1),
             "n_loose_taus_ele": ak.fill_none(n_loose_taus_ele, -1),
             "n_loose_muons1": ak.fill_none(n_loose_muons1, -1),
@@ -516,49 +537,91 @@ class vhProcessor(processor.ProcessorABC):
             "n_loose_electrons": ak.fill_none(n_loose_electrons, -1),
             "n_tight_electrons": ak.fill_none(n_tight_electrons, -1),
             "n_good_electrons": ak.fill_none(n_good_electrons, -1),
-            "n_loose_taus_mu": ak.fill_none(n_loose_taus_mu, -1),
-            # njets
-            "NumFatjets": NumFatjets,
+            "NumFatjets": ak.fill_none(NumFatjets, -1),
             "NumOtherJets": ak.fill_none(NumOtherJets, -1),
             "n_bjets_L": ak.fill_none(n_bjets_L, -1),
             "n_bjets_M": ak.fill_none(n_bjets_M, -1),
             "n_bjets_T": ak.fill_none(n_bjets_T, -1),
-            # vbf variables
-            "deta": deta,
-            "mjj": mjj,
-            # leading fatjet
-            "FirstFatjet_pt": objects["FirstFatjet"].pt,
-            "FirstFatjet_eta": objects["FirstFatjet"].eta,
-            "FirstFatjet_phi": objects["FirstFatjet"].phi,
-            "FirstFatjet_msd": objects["FirstFatjet"].msdcorr,
-            "FirstFatjet_Vscore": VScore(objects["FirstFatjet"]),
-            # second leading fatjet
-            "SecondFatjet_pt": objects["SecondFatjet"].pt,
-            "SecondFatjet_eta": objects["SecondFatjet"].eta,
-            "SecondFatjet_phi": objects["SecondFatjet"].phi,
-            "SecondFatjet_msd": objects["SecondFatjet"].msdcorr,
-            "SecondFatjet_Vscore": VScore(objects["SecondFatjet"]),
-            # second fatjet after candidate jet
-            "VH_fj_pt": ak.fill_none(objects["VH_fj"].pt, -999.0),
-            "VH_fj_eta": ak.fill_none(objects["VH_fj"].eta, -999.0),
-            "VH_fj_phi": ak.fill_none(objects["VH_fj"].phi, -999.0),
-            "VH_fj_mass": ak.fill_none(objects["VH_fj"].msdcorr, -999.0),
-            "VH_fj_lsf3": ak.fill_none(objects["VH_fj"].lsf3, -999.0),
-            "VH_fj_VScore": ak.fill_none(VScore(objects["VH_fj"]), -999.0),
-            # "VH_fj_pt": objects["VH_fj"].pt,
-            # "VH_fj_eta": objects["VH_fj"].eta,
-            # "VH_fj_phi": objects["VH_fj"].phi,
-            # "VH_fj_mass": objects["VH_fj"].msdcorr,
-            # "VH_fj_lsf3": objects["VH_fj"].lsf3,
-            # "VH_fj_VScore": VScore(objects["VH_fj"]),
-            # others
-            "ht": ht,
-            "loose_lep1_miso": ak.firsts(
-                objects["loose_muons1"][ak.argsort(objects["loose_muons1"].pt, ascending=False)]
-            ).miniPFRelIso_all,
-            "loose_lep1_pt": ak.firsts(objects["loose_muons1"][ak.argsort(objects["loose_muons1"].pt, ascending=False)]).pt,
-            "msk_leptonic_taus": msk_leptonic_taus,
+            # Add the boolean mask as an integer (0 or 1) for inspection
+            "msk_leptonic_taus": ak.fill_none(msk_leptonic_taus, -1),
         }
+
+
+
+        # derived_vars = {
+        #     # candidatefj
+        #     "fj_pt": objects["candidatefj"].pt,
+        #     "fj_eta": objects["candidatefj"].eta,
+        #     "fj_phi": objects["candidatefj"].phi,
+        #     "fj_mass": objects["candidatefj"].msdcorr,
+        #     "fj_lsf3": objects["candidatefj"].lsf3,
+        #     "fj_VScore": VScore(objects["candidatefj"]),
+        #     # candidatelep
+        #     "lep_pt": objects["candidatelep"].pt,
+        #     "lep_eta": objects["candidatelep"].eta,
+        #     "lep_phi": objects["candidatelep"].phi,
+        #     "lep_mass": objects["candidatelep"].mass,
+        #     "lep_isolation": lep_reliso,
+        #     "lep_misolation": lep_miso,
+        #     "lep_fj_dr": lep_fj_dr,
+        #     "lep_met_mt": mt_lep_met,
+        #     # met
+        #     "met_fj_dphi": met_fj_dphi,
+        #     "met_pt": objects["met"].pt,
+        #     "met_phi": objects["met"].phi,
+        #     # nleptons
+        #     "n_loose_taus_mu": ak.fill_none(n_loose_taus_mu, -1),
+        #     "n_loose_taus_ele": ak.fill_none(n_loose_taus_ele, -1),
+        #     "n_loose_muons1": ak.fill_none(n_loose_muons1, -1),
+        #     "n_loose_muons2": ak.fill_none(n_loose_muons2, -1),
+        #     "n_tight_muons": ak.fill_none(n_tight_muons, -1),
+        #     "n_good_muons": ak.fill_none(n_good_muons, -1),
+        #     "n_loose_electrons": ak.fill_none(n_loose_electrons, -1),
+        #     "n_tight_electrons": ak.fill_none(n_tight_electrons, -1),
+        #     "n_good_electrons": ak.fill_none(n_good_electrons, -1),
+        #     "n_loose_taus_mu": ak.fill_none(n_loose_taus_mu, -1),
+        #     # njets
+        #     "NumFatjets": NumFatjets,
+        #     "NumOtherJets": ak.fill_none(NumOtherJets, -1),
+        #     "n_bjets_L": ak.fill_none(n_bjets_L, -1),
+        #     "n_bjets_M": ak.fill_none(n_bjets_M, -1),
+        #     "n_bjets_T": ak.fill_none(n_bjets_T, -1),
+        #     # vbf variables
+        #     "deta": deta,
+        #     "mjj": mjj,
+        #     # leading fatjet
+        #     "FirstFatjet_pt": objects["FirstFatjet"].pt,
+        #     "FirstFatjet_eta": objects["FirstFatjet"].eta,
+        #     "FirstFatjet_phi": objects["FirstFatjet"].phi,
+        #     "FirstFatjet_msd": objects["FirstFatjet"].msdcorr,
+        #     "FirstFatjet_Vscore": VScore(objects["FirstFatjet"]),
+        #     # second leading fatjet
+        #     "SecondFatjet_pt": objects["SecondFatjet"].pt,
+        #     "SecondFatjet_eta": objects["SecondFatjet"].eta,
+        #     "SecondFatjet_phi": objects["SecondFatjet"].phi,
+        #     "SecondFatjet_msd": objects["SecondFatjet"].msdcorr,
+        #     "SecondFatjet_Vscore": VScore(objects["SecondFatjet"]),
+        #     # second fatjet after candidate jet
+        #     "VH_fj_pt": ak.fill_none(objects["VH_fj"].pt, -999.0),
+        #     "VH_fj_eta": ak.fill_none(objects["VH_fj"].eta, -999.0),
+        #     "VH_fj_phi": ak.fill_none(objects["VH_fj"].phi, -999.0),
+        #     "VH_fj_mass": ak.fill_none(objects["VH_fj"].msdcorr, -999.0),
+        #     "VH_fj_lsf3": ak.fill_none(objects["VH_fj"].lsf3, -999.0),
+        #     "VH_fj_VScore": ak.fill_none(VScore(objects["VH_fj"]), -999.0),
+        #     # "VH_fj_pt": objects["VH_fj"].pt,
+        #     # "VH_fj_eta": objects["VH_fj"].eta,
+        #     # "VH_fj_phi": objects["VH_fj"].phi,
+        #     # "VH_fj_mass": objects["VH_fj"].msdcorr,
+        #     # "VH_fj_lsf3": objects["VH_fj"].lsf3,
+        #     # "VH_fj_VScore": VScore(objects["VH_fj"]),
+        #     # others
+        #     "ht": ht,
+        #     "loose_lep1_miso": ak.firsts(
+        #         objects["loose_muons1"][ak.argsort(objects["loose_muons1"].pt, ascending=False)]
+        #     ).miniPFRelIso_all,
+        #     "loose_lep1_pt": ak.firsts(objects["loose_muons1"][ak.argsort(objects["loose_muons1"].pt, ascending=False)]).pt,
+        #     "msk_leptonic_taus": msk_leptonic_taus,
+        # }
 
         if self.isMC:
             derived_vars.update(

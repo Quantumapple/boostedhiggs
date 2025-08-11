@@ -79,13 +79,7 @@ class wrapped_triton:
 
         output = triton_protocol.InferRequestedOutput(self._out_name)
 
-        request = client.infer(
-            self._model,
-            model_version=self._version,
-            inputs=inputs,
-            outputs=[output],
-        )
-
+        request = None
         # in case of a server error, keep trying to connect for 5 minutes
         for i in range(60):
             try:
@@ -99,6 +93,9 @@ class wrapped_triton:
             except tritonclient.utils.InferenceServerException as e:
                 print("Triton Error:", e)
                 time.sleep(5)
+
+        if request is None:
+            raise tritonclient.utils.InferenceServerException("Inference failed after all retries")
 
         return request.as_numpy(self._out_name)
 

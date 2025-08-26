@@ -29,6 +29,7 @@ from boostedhiggs.corrections import (
     get_jec_jets,
     get_JetVetoMap,
     get_jmsr,
+    get_vjet_jmsr,
     get_pileup_weight,
     getJECVariables,
     getJMSRVariables,
@@ -314,7 +315,10 @@ class vhProcessor(processor.ProcessorABC):
 
         allScores = VScore(good_fatjets)
         VH_fj = ak.firsts(good_fatjets[allScores == ak.max(allScores[mask_candidatefj], axis=1)])
-        VH_fj["msdcorr"] = corrected_msoftdrop(VH_fj)
+        VH_fj["msdcorr_pre_smear"] = corrected_msoftdrop(VH_fj)
+
+        jmsr_shifted_VHjetvars = get_vjet_jmsr(VH_fj, num_jets=1, year=self._year, isData=not self.isMC)
+        VH_fj["msdcorr"] = jmsr_shifted_VHjetvars["msoftdrop"][""]
 
         # AK4 JETS
         jets, jec_shifted_jetvars = get_jec_jets(events, events.Jet, self._year, not self.isMC, self.jecs, fatjets=False)
@@ -383,6 +387,7 @@ class vhProcessor(processor.ProcessorABC):
             # jecs
             "jmsr_shifted_fatjetvars": jmsr_shifted_fatjetvars,
             "jec_shifted_fatjetvars": jec_shifted_fatjetvars,
+            "jmsr_shifted_VHjetvars": jmsr_shifted_VHjetvars,
             "jec_shifted_jetvars": jec_shifted_jetvars,
             # others (easier to just store them here)
             "fj_idx_lep": fj_idx_lep,
@@ -542,6 +547,7 @@ class vhProcessor(processor.ProcessorABC):
             "VH_fj_eta": objects["VH_fj"].eta,
             "VH_fj_phi": objects["VH_fj"].phi,
             "VH_fj_mass": objects["VH_fj"].msdcorr,
+            "VH_fj_pre_smear_mass": objects["VH_fj"].msdcorr_pre_smear,
             "VH_fj_lsf3": objects["VH_fj"].lsf3,
             "VH_fj_VScore": VScore(objects["VH_fj"]),
             # others

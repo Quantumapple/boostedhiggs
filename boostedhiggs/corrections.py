@@ -807,6 +807,116 @@ def get_jmsr(fatjets, num_jets: int, year: str, isData: bool = False, seed: int 
 
     return jmsr_shifted_vars
 
+##### VJets JMSR
+
+### Ref: https://indico.cern.ch/event/1470867/contributions/6210658/attachments/2960153/5288894/25.01.17_JMAR_Supp2.pdf
+
+vjet_jmsValues = {
+    "msoftdrop": {
+        # nominal, up, down
+        "2016APV": [-0.178, -0.077, -0.276], # -0.178 +0.101/-0.098
+        "2016":    [-0.063, 0.067,  -0.170], # -0.063 +0.130/-0.107
+        "2017":    [0.007,  0.101,  -0.087], # +0.007 +0.094/-0.094
+        "2018":    [-0.053, 0.025,  -0.133], # -0.053 +0.078/-0.080
+    }
+}
+
+vjet_jmrValues = {
+    "msoftdrop": {
+        # nominal, up, down
+        "2016APV": [-0.066, 0.060,  -0.206], # -0.066 +0.126/-0.140
+        "2016":    [0.167,  0.274,  0.054],  # +0.167 +0.107/-0.113
+        "2017":    [0.081,  0.169,  -0.011], # +0.081 +0.088/-0.092
+        "2018":    [-0.129, -0.045, -0.222], # -0.129 +0.084/-0.093
+    }
+}
+
+def compute_vjet_mass_variations(scale, smear, mass, rand_norm):
+    """Computes the three mass templates for a given scale and smear factor."""
+
+    # The three templates are:
+    #    - m1: Smeared mass (for Gaussian smearing when smear > 0).
+    #    - m2: Nominal template (unmodified scale correction).
+    #    - m3: Additional smeared template (used for template subtraction when smear ≤ 0).
+    #
+    # The final corrected template is computed as:
+    #    Corrected mass = T1 + 2*T2 - T3
+    #
+    # This holds for both positive and negative smearing.
+
+    scaled_mass = scale * mass
+    # The smeared term is the same for templates m1 and m3
+    smeared_term = scaled_mass * (1. + np.abs(smear) * rand_norm)
+
+    # m1, m2, m3
+    return smeared_term, scaled_mass, smeared_term
+
+def compute_vjet_weights(smear):
+    """Computes the weights based on the sign of the smear factor."""
+
+    # When smear > 0: Apply standard Gaussian smearing.
+    #    - w1 = 1, w2 = 0, w3 = 0.
+    # When smear ≤ 0: Use template subtraction to correct for over-smearing.
+    #    - w1 = 0, w2 = 1 (scaled but unsmeared template), w3 = 1 (scaled and "absolute" smeared template).
+
+    # Create a boolean mask once for efficiency
+    smear_gt_zero = smear > 0
+    w1 = np.where(smear_gt_zero, 1., 0.)
+    # w2 and w3 are identical, based on the inverse condition
+    w23 = np.where(smear_gt_zero, 0., 1.)
+    return w1, w23, w23
+
+def get_vjet_jmsr(fatjets, num_jets: int, year: str, isData: bool = False) -> dict:
+    """
+    Calculates the Jet Mass Scale/Resolution (JMSR) variations for V-jets.
+    The implementation is now data-driven, using loops to avoid repetitive code.
+    """
+    jmsr_shifted_vars = {}
+    for mkey in jmsr_vars:
+        tdict = {}
+        mass = pad_val(fatjets[mkey], num_jets, axis=1)
+
+        if isData:
+            tdict[""] = mass
+            jmsr_shifted_vars[mkey] = tdict
+            continue # Move to the next mkey
+
+        # --- Monte Carlo Simulation Logic ---
+        rand_norm = np.random.normal(loc=0., size=mass.shape)
+
+        # Retrieve scale and smear factors
+        scale_nom, scale_up, scale_down = (0.05 * vjet_jmsValues[mkey][year][i] + 1.0 for i in range(3))
+        smear_nom, smear_up, smear_down = (0.10 * vjet_jmrValues[mkey][year][i] for i in range(3))
+
+        # Define all variations in a dictionary for clarity and easy processing
+        variations = {
+            "nom":         (scale_nom, smear_nom),
+            "smear_up":    (scale_nom, smear_up),
+            "smear_down":  (scale_nom, smear_down),
+            "scale_up":    (scale_up, smear_nom),
+            "scale_down":  (scale_down, smear_nom),
+        }
+
+        # Loop through variations to compute and store mass templates
+        for key, (scale, smear) in variations.items():
+            m1, m2, m3 = compute_vjet_mass_variations(scale, smear, mass, rand_norm)
+            tdict[f"m1_{key}"], tdict[f"m2_{key}"], tdict[f"m3_{key}"] = m1, m2, m3
+
+        # Loop through only the necessary smear variations to compute weights
+        # (Scale variations use the nominal smearing weights)
+        for key in ["nom", "smear_up", "smear_down"]:
+            _, smear = variations[key] # Get the corresponding smear value
+            w1, w2, w3 = compute_vjet_weights(smear)
+            tdict[f"w1_{key}"], tdict[f"w2_{key}"], tdict[f"w3_{key}"] = w1, w2, w3
+
+        # The final corrected nominal mass is the first template of the nominal variation
+        tdict[""] = tdict["m1_nom"]
+
+        jmsr_shifted_vars[mkey] = tdict
+
+    return jmsr_shifted_vars
+
+##### VJets JMSR
 
 def getJECVariables(fatjetvars, candidatelep_p4, met, pt_shift=None, met_shift=None):
     """

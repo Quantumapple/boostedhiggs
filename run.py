@@ -252,7 +252,7 @@ def main(args):
         elif args.processor != "trigger":
             # merge parquet
             for ch in channels:
-                parquet_files = Path("./outfiles/" + job_name + ch + "/parquet").glob('*.parquet')
+                parquet_files = sorted(Path("./outfiles/" + job_name + ch + "/parquet").glob('*.parquet'))
                 dfs = []
                 if not len(parquet_files) == 0:
                     for ifile in parquet_files:

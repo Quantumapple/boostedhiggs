@@ -254,13 +254,14 @@ def main(args):
             for ch in channels:
                 parquet_files = Path("./outfiles/" + job_name + ch + "/parquet").glob('*.parquet')
                 dfs = []
-                for ifile in parquet_files:
-                    dfs.append(pd.read_parquet(ifile))
+                if not len(parquet_files) == 0:
+                    for ifile in parquet_files:
+                        dfs.append(pd.read_parquet(ifile))
 
-                data = pd.concat(dfs).reset_index(drop=True)
-                data.to_parquet("./outfiles/" + job_name + "_" + ch + ".parquet")
-                # remove old parquet files
-                os.system("rm -rf ./outfiles/" + job_name + ch)
+                    data = pd.concat(dfs).reset_index(drop=True)
+                    data.to_parquet("./outfiles/" + job_name + "_" + ch + ".parquet")
+                    # remove old parquet files
+                    os.system("rm -rf ./outfiles/" + job_name + ch)
 
 
 if __name__ == "__main__":

@@ -1172,7 +1172,7 @@ def getGenLepGenQuarks(dataset, genparts: GenParticleArray):
             | (wboson_daughters_pdgId == TAU_PDGID)
         )
 
-        quarks = wboson_daughters_pdgId <= b_PDGID
+        quarks = wboson_daughters_pdgId < b_PDGID
 
         bquarks = daughters[(daughters_pdgId == b_PDGID)]
 

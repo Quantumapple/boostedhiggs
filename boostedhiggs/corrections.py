@@ -866,7 +866,7 @@ def compute_vjet_weights(smear):
     w23 = np.where(smear_gt_zero, 0., 1.)
     return w1, w23, w23
 
-def get_vjet_jmsr(fatjets, num_jets: int, year: str, isData: bool = False) -> dict:
+def get_vjet_jmsr(fatjets, year: str, isData: bool = False) -> dict:
     """
     Calculates the Jet Mass Scale/Resolution (JMSR) variations for V-jets.
     The implementation is now data-driven, using loops to avoid repetitive code.
@@ -874,7 +874,7 @@ def get_vjet_jmsr(fatjets, num_jets: int, year: str, isData: bool = False) -> di
     jmsr_shifted_vars = {}
     for mkey in jmsr_vars:
         tdict = {}
-        mass = pad_val(fatjets[mkey], num_jets, axis=1)
+        mass = fatjets[mkey]
 
         if isData:
             tdict[""] = mass

@@ -717,6 +717,8 @@ class vhProcessor(processor.ProcessorABC):
             ### Drop Tau selection for vhprocessor
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_mu"] == 0), channel="mu")
             # self.add_selection(name="NoTaus", sel=(variables["n_loose_taus_ele"] == 0), channel="ele")
+
+            ### Number of fatjets
             self.add_selection(name="AtLeastOneFatJet", sel=(variables["NumFatjets"] >= 1))
             # self.add_selection(name="GreaterTwoFatJets", sel=(variables["NumFatjets"] >= 2))
 
@@ -729,12 +731,12 @@ class vhProcessor(processor.ProcessorABC):
             self.add_selection(name="CandidateJetpT", sel=(fj_pt_sel == 1))
 
             ### FJ pT cut for V candidate jet
-            # fj_pt_sel = objects["VH_fj"].pt > 250
-            # if self.isMC:  # make an OR of all the JECs
-            #     for k, v in self.jecs.items():
-            #         for var in ["up", "down"]:
-            #             fj_pt_sel = fj_pt_sel | (objects["VH_fj"][v][var].pt > 250)
-            # self.add_selection(name="CandidateJetpT_V", sel=(fj_pt_sel == 1))
+            fj_pt_sel = objects["VH_fj"].pt > 250
+            if self.isMC:  # make an OR of all the JECs
+                for k, v in self.jecs.items():
+                    for var in ["up", "down"]:
+                        fj_pt_sel = fj_pt_sel | (objects["VH_fj"][v][var].pt > 250)
+            self.add_selection(name="CandidateJetpT_V", sel=(fj_pt_sel == 1))
 
             ### Overlap condition but not for the dR < 0.03 (could be consider as the same object)
             self.add_selection(name="LepInJet", sel=(variables["lep_fj_dr"] < 0.8))

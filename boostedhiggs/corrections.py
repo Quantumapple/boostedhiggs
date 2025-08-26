@@ -882,7 +882,7 @@ def get_vjet_jmsr(fatjets, year: str, isData: bool = False) -> dict:
             continue # Move to the next mkey
 
         # --- Monte Carlo Simulation Logic ---
-        rand_norm = np.random.normal(loc=0., size=mass.shape)
+        rand_norm = np.random.normal(loc=0., size=len(mass))
 
         # Retrieve scale and smear factors
         scale_nom, scale_up, scale_down = (0.05 * vjet_jmsValues[mkey][year][i] + 1.0 for i in range(3))

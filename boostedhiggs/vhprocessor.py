@@ -70,6 +70,44 @@ def build_p4(cand):
         behavior=candidate.behavior,
     )
 
+def count_bjets_outside_cones(ak4_jets, HCandidateJet, VCandidateJet, btag_wps, year, wp_level="M"):
+    """
+    Counts the number of b-tagged AK4 jets that are outside the cones
+    of two specified jets (e.g., a Higgs and a V-boson jet).
+
+    Args:
+        ak4_jets (ak.Array): The collection of AK4 jets for all events.
+        HCandidateJet (ak.Array): The H candidated fatjet to define an exclusion cone.
+        VCandidateJet (ak.Array): The V candidated fatjet to define an exclusion cone.
+        btag_wps (dict): Dictionary containing b-tagging working points.
+        year (str or int): The year, used as a key for the btag_wps dictionary.
+        wp_level (str, optional): The b-tag working point ('L', 'M', 'T'). Defaults to "M".
+
+    Returns:
+        ak.Array: An array containing the count of b-tagged jets for each event.
+    """
+
+    # Ensure year is a string for dictionary key access
+    year_str = str(year)
+
+    # 1. Get the specific b-tagging working point value
+    btag_wp_value = btag_wps["deepJet"][year_str][wp_level]
+
+    # 2. Create a boolean mask for jets that pass the b-tagging cut
+    is_btagged = (ak4_jets.btagDeepFlavB > btag_wp_value)
+
+    # 3. Create boolean masks for jets outside the cone of each main jet
+    is_outside_jet1 = (ak4_jets.delta_r(HCandidateJet) > 0.8)
+    is_outside_jet2 = (ak4_jets.delta_r(VCandidateJet) > 0.8)
+
+    # 4. Combine all masks: must be b-tagged AND outside jet1 AND outside jet2
+    final_mask = is_btagged & is_outside_jet1 & is_outside_jet2
+
+    # 5. Sum the number of jets (True values) per event
+    n_btagged_jets = ak.sum(final_mask, axis=1)
+
+    return n_btagged_jets
+
 
 class vhProcessor(processor.ProcessorABC):
     def __init__(
@@ -332,8 +370,17 @@ class vhProcessor(processor.ProcessorABC):
             & (jets.chEmEF + jets.neEmEF < 0.9)  # neutral and charged energy fraction
         )
         jets = jets[jet_selector]
+        base_jec_shifted_jetvars = {
+            var: {shift: values[jet_selector] for shift, values in shifts.items()}
+            for var, shifts in jec_shifted_jetvars.items()
+        }
+
         jet_veto_map, cut_jetveto = get_JetVetoMap(jets, self._year)
         jets = jets[(jets.pt > 30) & jet_veto_map]
+        jec_shifted_jetvars_filtered = {
+            var: {shift: values[(jets.pt > 30) & jet_veto_map] for shift, values in shifts.items()}
+            for var, shifts in base_jec_shifted_jetvars.items()
+        }
 
         # AK4 JETS (OUTSIDE AK8)
         msk_ak4_outside_ak8 = jets.delta_r(candidatefj) > 0.8
@@ -389,6 +436,7 @@ class vhProcessor(processor.ProcessorABC):
             "jec_shifted_fatjetvars": jec_shifted_fatjetvars,
             "jmsr_shifted_VHjetvars": jmsr_shifted_VHjetvars,
             "jec_shifted_jetvars": jec_shifted_jetvars,
+            "jec_shifted_jetvars_filtered": jec_shifted_jetvars_filtered,
             # others (easier to just store them here)
             "fj_idx_lep": fj_idx_lep,
             "msk_ak4_outside_ak8": msk_ak4_outside_ak8,
@@ -402,7 +450,6 @@ class vhProcessor(processor.ProcessorABC):
         """Derives physics variables from `objects` (e.g. deltaR(jet,lep))."""
 
         ht = ak.sum(objects["jets"].pt, axis=1)
-
 
         # nleptons
         n_loose_taus_mu = ak.sum(objects["loose_taus_mu"], axis=1)
@@ -458,6 +505,22 @@ class vhProcessor(processor.ProcessorABC):
         # leptonic tau veto
         leptonic_taus = (objects["loose_taus"]["decayMode"] == ELE_PDGID) | (objects["loose_taus"]["decayMode"] == MU_PDGID)
         msk_leptonic_taus = ~ak.any(leptonic_taus, axis=1)
+
+        ### N b-jets variables
+        n_bjets_output_dict = {}
+        pt_variations = objects['jec_shifted_jetvars_filtered']['pt']
+        for sys_name, shifted_pt_array in pt_variations.items():
+            pt_selector_sys = (shifted_pt_array > 30)
+            goodjets_sys = objects['jets'][pt_selector_sys]
+            numBJets_sys = count_bjets_outside_cones(
+                ak4_jets=goodjets_sys,
+                HCandidateJet=objects['candidatefj'],
+                VCandidateJet=objects['VH_fj'],
+                btag_wps=btagWPs,
+                year=self._year,
+                wp_level="M",
+            )
+            n_bjets_output_dict[f"n_bjets_{sys_name}"] = numBJets_sys
 
         # get the dR(genlep, recolep) to check the matching
         if self.isMC:
@@ -558,6 +621,9 @@ class vhProcessor(processor.ProcessorABC):
             "loose_lep1_pt": ak.firsts(objects["loose_muons1"][ak.argsort(objects["loose_muons1"].pt, ascending=False)]).pt,
             "msk_leptonic_taus": msk_leptonic_taus,
         }
+
+        ## Add n-bjets variables
+        derived_vars.update(n_bjets_output_dict)
 
         if self.isMC:
             derived_vars.update(

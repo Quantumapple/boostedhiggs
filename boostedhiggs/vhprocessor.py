@@ -378,12 +378,14 @@ class vhProcessor(processor.ProcessorABC):
         }
 
         jet_veto_map, cut_jetveto = get_JetVetoMap(jets, self._year)
+
+        ### Variables for systematic calculation.
+        ### To make correct approach is to apply the shifted pt > 30 cut to the un-cut jet collection
+        jets_base_for_sys = jets
+        jet_veto_map_for_sys = jet_veto_map
+
         pt_30_mask = (jets.pt > 30)
         jets = jets[pt_30_mask & jet_veto_map]
-        jec_shifted_jetvars_filtered = {
-            var: {shift: values[pt_30_mask & jet_veto_map] for shift, values in shifts.items()}
-            for var, shifts in base_jec_shifted_jetvars.items()
-        }
 
         # AK4 JETS (OUTSIDE AK8)
         msk_ak4_outside_ak8 = jets.delta_r(candidatefj) > 0.8
@@ -439,7 +441,10 @@ class vhProcessor(processor.ProcessorABC):
             "jec_shifted_fatjetvars": jec_shifted_fatjetvars,
             "jmsr_shifted_VHjetvars": jmsr_shifted_VHjetvars,
             "jec_shifted_jetvars": jec_shifted_jetvars,
-            "jec_shifted_jetvars_filtered": jec_shifted_jetvars_filtered,
+            # for jet sys
+            'jets_base_for_sys': jets_base_for_sys,
+            'jet_veto_map_for_sys': jet_veto_map_for_sys,
+            'base_jec_shifted_jetvars': base_jec_shifted_jetvars,
             # others (easier to just store them here)
             "fj_idx_lep": fj_idx_lep,
             "msk_ak4_outside_ak8": msk_ak4_outside_ak8,
@@ -512,20 +517,35 @@ class vhProcessor(processor.ProcessorABC):
 
         ### N b-jets variables
         n_bjets_output_dict = {}
-        pt_variations = objects['jec_shifted_jetvars_filtered']['pt']
-        for sys_name, shifted_pt_array in pt_variations.items():
-            if sys_name != "":
-                pt_selector_sys = (shifted_pt_array > 30)
-                goodjets_sys = objects['jets'][pt_selector_sys]
-                numBJets_sys = count_bjets_outside_cones(
-                    ak4_jets=goodjets_sys,
-                    HCandidateJet=objects['candidatefj'],
-                    VCandidateJet=objects['VH_fj'],
-                    btag_wps=btagWPs,
-                    year=self._year,
-                    wp_level="T",
-                )
-                n_bjets_output_dict[f"n_bjets_{sys_name}"] = numBJets_sys
+
+        jets_base = objects['jets_base_for_sys']
+        veto_map_base = objects['jet_veto_map_for_sys']
+
+        # 2. Get all pt variations (including nominal)
+        # We must add the nominal pt (sys_name = "") to the dict
+        all_pt_variations = objects['base_jec_shifted_jetvars']['pt'].copy()
+        all_pt_variations[""] = jets_base.pt
+
+        for sys_name, shifted_pt_array in all_pt_variations.items():
+
+            if sys_name == "":
+                continue
+
+            pt_selector_sys = (shifted_pt_array > 30)
+
+            final_sys_mask = pt_selector_sys & veto_map_base
+            goodjets_sys = jets_base[final_sys_mask]
+
+            numBJets_sys = count_bjets_outside_cones(
+                ak4_jets=goodjets_sys,
+                HCandidateJet=objects['candidatefj'],
+                VCandidateJet=objects['VH_fj'],
+                btag_wps=btagWPs,
+                year=self._year,
+                wp_level="T",
+            )
+
+            n_bjets_output_dict[f"n_bjets_{sys_name}"] = numBJets_sys
 
         # get the dR(genlep, recolep) to check the matching
         if self.isMC:

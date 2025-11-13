@@ -514,17 +514,18 @@ class vhProcessor(processor.ProcessorABC):
         n_bjets_output_dict = {}
         pt_variations = objects['jec_shifted_jetvars_filtered']['pt']
         for sys_name, shifted_pt_array in pt_variations.items():
-            pt_selector_sys = (shifted_pt_array > 30)
-            goodjets_sys = objects['jets'][pt_selector_sys]
-            numBJets_sys = count_bjets_outside_cones(
-                ak4_jets=goodjets_sys,
-                HCandidateJet=objects['candidatefj'],
-                VCandidateJet=objects['VH_fj'],
-                btag_wps=btagWPs,
-                year=self._year,
-                wp_level="T",
-            )
-            n_bjets_output_dict[f"n_bjets_{sys_name}"] = numBJets_sys
+            if sys_name != "":
+                pt_selector_sys = (shifted_pt_array > 30)
+                goodjets_sys = objects['jets'][pt_selector_sys]
+                numBJets_sys = count_bjets_outside_cones(
+                    ak4_jets=goodjets_sys,
+                    HCandidateJet=objects['candidatefj'],
+                    VCandidateJet=objects['VH_fj'],
+                    btag_wps=btagWPs,
+                    year=self._year,
+                    wp_level="T",
+                )
+                n_bjets_output_dict[f"n_bjets_{sys_name}"] = numBJets_sys
 
         # get the dR(genlep, recolep) to check the matching
         if self.isMC:

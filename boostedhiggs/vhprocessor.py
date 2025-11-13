@@ -378,9 +378,10 @@ class vhProcessor(processor.ProcessorABC):
         }
 
         jet_veto_map, cut_jetveto = get_JetVetoMap(jets, self._year)
-        jets = jets[(jets.pt > 30) & jet_veto_map]
+        pt_30_mask = (jets.pt > 30)
+        jets = jets[pt_30_mask & jet_veto_map]
         jec_shifted_jetvars_filtered = {
-            var: {shift: values[(jets.pt > 30) & jet_veto_map] for shift, values in shifts.items()}
+            var: {shift: values[pt_30_mask & jet_veto_map] for shift, values in shifts.items()}
             for var, shifts in base_jec_shifted_jetvars.items()
         }
 

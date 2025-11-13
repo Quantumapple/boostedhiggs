@@ -352,7 +352,9 @@ class vhProcessor(processor.ProcessorABC):
         mask_candidatefj = fatJetIndices != minDeltaR
 
         allScores = VScore(good_fatjets)
-        VH_fj = ak.firsts(good_fatjets[allScores == ak.max(allScores[mask_candidatefj], axis=1)])
+        vh_fj_selection_mask = (allScores == ak.max(allScores[mask_candidatefj], axis=1))
+        VH_fj = ak.firsts(good_fatjets[vh_fj_selection_mask])
+        vh_fj_idx = fatJetIndices[vh_fj_selection_mask]
         VH_fj["msdcorr_pre_smear"] = corrected_msoftdrop(VH_fj)
 
         jmsr_shifted_VHjetvars = get_vjet_jmsr(VH_fj, year=self._year, isData=not self.isMC)
@@ -442,6 +444,7 @@ class vhProcessor(processor.ProcessorABC):
             "msk_ak4_outside_ak8": msk_ak4_outside_ak8,
             "bjet_selector": bjet_selector,
             "VH_fj": VH_fj,
+            "vh_fj_idx": vh_fj_idx,
         }
 
         return objects
@@ -518,7 +521,7 @@ class vhProcessor(processor.ProcessorABC):
                 VCandidateJet=objects['VH_fj'],
                 btag_wps=btagWPs,
                 year=self._year,
-                wp_level="M",
+                wp_level="T",
             )
             n_bjets_output_dict[f"n_bjets_{sys_name}"] = numBJets_sys
 
@@ -646,20 +649,36 @@ class vhProcessor(processor.ProcessorABC):
             "fj_mass": objects["candidatefj"].msdcorr,
         }
 
+        VHjetvars = {
+            "VH_fj_eta": objects["VH_fj"].eta,
+            "VH_fj_phi": objects["VH_fj"].phi,
+            "VH_fj_pt": objects["VH_fj"].pt,
+            "VH_fj_mass": objects["VH_fj"].msdcorr,
+        }
+
         if self._systematics and self.isMC:
             fatjetvars_sys = {}
+            VHjetvars_sys = {}
+
             # JEC vars
             for shift, vals in objects["jec_shifted_fatjetvars"]["pt"].items():
                 if shift != "":
                     fatjetvars_sys[f"fj_pt{shift}"] = ak.firsts(vals[objects["fj_idx_lep"]])
+                    VHjetvars_sys[f"VH_fj_pt{shift}"] = ak.firsts(vals[objects["vh_fj_idx"]])
 
             # JMSR vars
             for shift, vals in objects["jmsr_shifted_fatjetvars"]["msoftdrop"].items():
                 if shift != "":
                     fatjetvars_sys[f"fj_mass{shift}"] = ak.firsts(vals)
 
-            variables = {**variables, **fatjetvars_sys}
+            # VH_fj JMSR vars
+            for shift, vals in objects["jmsr_shifted_VHjetvars"]["msoftdrop"].items():
+               if shift != "":
+                   VHjetvars_sys[f"VH_fj_mass_{shift}"] = ak.firsts(vals)
+
+            variables = {**variables, **fatjetvars_sys, **VHjetvars_sys}
             fatjetvars = {**fatjetvars, **fatjetvars_sys}
+            VHjetvars = {**VHjetvars, **VHjetvars_sys}
 
             # add variables affected by JECs/MET
             mjj_shift = {}

@@ -696,6 +696,13 @@ class vhProcessor(processor.ProcessorABC):
             # VH_fj JMSR vars
             for shift, vals in objects["jmsr_shifted_VHjetvars"]["msoftdrop"].items():
                if shift != "":
+
+                   ### This fix is implemented due to the events have no VH fatjet
+                   ### Check if 'vals' is a scalar (0-dim array)
+                   if not isinstance(vals, (ak.Array, np.ndarray)) or vals.ndim == 0:
+                       num_events = len(objects["candidatelep"].pt) # Get the number of events
+                       vals = np.full(num_events, float(vals)) # Broadcast the scalar to a full array
+
                    VHjetvars_sys[f"VH_fj_mass_{shift}"] = vals
 
             variables = {**variables, **fatjetvars_sys, **VHjetvars_sys}

@@ -696,7 +696,7 @@ class vhProcessor(processor.ProcessorABC):
             # VH_fj JMSR vars
             for shift, vals in objects["jmsr_shifted_VHjetvars"]["msoftdrop"].items():
                if shift != "":
-                   VHjetvars_sys[f"VH_fj_mass_{shift}"] = ak.firsts(vals)
+                   VHjetvars_sys[f"VH_fj_mass_{shift}"] = vals
 
             variables = {**variables, **fatjetvars_sys, **VHjetvars_sys}
             fatjetvars = {**fatjetvars, **fatjetvars_sys}
